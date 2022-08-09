@@ -33,7 +33,25 @@ node {
                                 sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.7 docker login -u rispajoseph -p ${dockerhub_passwd}"
                                 sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.7 docker image push rispajoseph/$JOB_NAME:v1.$BUILD_ID '
                                 sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.7 docker image push rispajoseph/$JOB_NAME:latest '
-            }
+                                
+                                sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.7 docker image rm rispajoseph/$JOB_NAME:v1.$BUILD_ID rispajoseph/$JOB_NAME:latest $JOB_NAME:v1.$BUILD_ID  '
+            }                    
         }
     }
+    
+    stage('Copy files from ansible to kubernetes server'){
+        sshagent(['kubernetes_server']) {
+                sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.2.181'
+                sh 'scp /var/lib/jenkins/workspace/devops-project/* ubuntu@172.31.2.181:/home/ubuntu/'
+        }
+    }
+    
+    stage('Kubernetes deployment using ansible'){
+        sshagent(['ansible-demo']) {
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.7 cd /home/ubuntu/'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.46.7 ansible-playbook ansible.yaml'
+        }
+    }
+        
+    
 }
